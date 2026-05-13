@@ -12,7 +12,7 @@ const int pinUmiditate2 = A1;
 const int pinNivelApa   = A2;
 const int pinFlacaraS1  = A3; 
 const int pinFlacaraS2  = A4; 
-const int pinFlacaraTur = A5;
+
 
 // Driver L298N
 const int pinIN1 = 2;   // Pompa Irigare
