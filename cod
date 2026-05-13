@@ -1,1 +1,154 @@
+#include <Servo.h>
 
+/* 
+ * TITLU PROIECT: Sistem Dual Irigatie si Anti-Foc (L298N)
+ * COMPATIBILITATE: Arduino UNO
+ * DESCRIERE: 2 Senzori umiditate, 2 Pompe via L298N, 4 Servomotoare.
+ */
+
+// --- DEFINIRE PINI ---
+const int pinUmiditate1 = A0;
+const int pinUmiditate2 = A1;
+const int pinNivelApa   = A2;
+const int pinFlacaraS1  = A3; 
+const int pinFlacaraS2  = A4; 
+const int pinFlacaraTur = A5;
+
+// Driver L298N
+const int pinIN1 = 2;   // Pompa Irigare
+const int pinIN2 = 4;
+const int pinENA = 10;  // PWM viteza
+const int pinIN3 = 7;   // Pompa Foc
+const int pinIN4 = 8;
+const int pinENB = 11;  // PWM viteza
+
+// Servomotoare
+const int pinServoScanPan  = 3;
+const int pinServoScanTilt = 5;
+const int pinServoTur      = 6;
+const int pinServoUnghi    = 9;
+
+Servo servoScanPan;
+Servo servoScanTilt;
+Servo servoTur;
+Servo servoUnghi;
+
+// --- VARIABILE ---
+int pragUmiditate = 500;      
+int pragFlacara   = 300;      
+int pragNivelMin  = 150;     
+
+unsigned long timpAnteriorIrigare = 0;
+unsigned long timpAnteriorScanare = 0;
+unsigned long timpAnteriorServo4  = 0;
+const long intervalIrigare = 60000; 
+const long intervalScanare = 25;    
+const long intervalServo4  = 28;    // 10s ciclu complet (10000ms / 360 grade)
+
+int unghiScan = 0;
+int directieScan = 1;
+int pos4 = 0;
+int dir4 = 1;
+
+bool incendiuDetectat = false;
+bool pompaBlocata = false;
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Configurare L298N
+  pinMode(pinIN1, OUTPUT); pinMode(pinIN2, OUTPUT); pinMode(pinENA, OUTPUT);
+  pinMode(pinIN3, OUTPUT); pinMode(pinIN4, OUTPUT); pinMode(pinENB, OUTPUT);
+  
+  // Atașare servomotoare
+  servoScanPan.attach(pinServoScanPan, 500, 2500); // 270 grade
+  servoScanTilt.attach(pinServoScanTilt, 500, 2500);
+  servoTur.attach(pinServoTur);
+  servoUnghi.attach(pinServoUnghi);
+  
+  // Poziții inițiale
+  servoScanPan.write(135); 
+  servoScanTilt.write(45);
+  servoTur.write(90);
+  servoUnghi.write(0); 
+  
+  Serial.println("Sistem pornit fara diacritice...");
+}
+
+void loop() {
+  unsigned long timpCurent = millis();
+
+  // 1. Verificare Nivel Apa
+  int nivel = analogRead(pinNivelApa);
+  pompaBlocata = (nivel < pragNivelMin);
+
+  // 2. Logica Anti-Foc
+  detectieIncendiu(timpCurent);
+
+  // 3. Logica Irigatie (Oprita daca e incendiu)
+  if (!incendiuDetectat &&!pompaBlocata) {
+    gestionareIrigare(timpCurent);
+  } else if (incendiuDetectat) {
+    digitalWrite(pinIN1, LOW); digitalWrite(pinIN2, LOW); // Stop Irigare
+  }
+}
+
+void detectieIncendiu(unsigned long currentMillis) {
+  int valS1 = analogRead(pinFlacaraS1);
+  int valS2 = analogRead(pinFlacaraS2);
+
+  if (valS1 < pragFlacara || valS2 < pragFlacara) {
+    incendiuDetectat = true;
+    stingereIncendiu(currentMillis);
+  } else {
+    incendiuDetectat = false;
+    scanareActiva(currentMillis);
+    digitalWrite(pinIN3, LOW); digitalWrite(pinIN4, LOW); // Stop Pompa Foc
+  }
+}
+
+void scanareActiva(unsigned long currentMillis) {
+  if (currentMillis - timpAnteriorScanare >= intervalScanare) {
+    timpAnteriorScanare = currentMillis;
+    unghiScan += directieScan;
+    if (unghiScan >= 270 || unghiScan <= 0) directieScan *= -1;
+    servoScanPan.write(unghiScan);
+  }
+}
+
+void stingereIncendiu(unsigned long currentMillis) {
+  // Orientare Turela
+  int valS1 = analogRead(pinFlacaraS1);
+  int valS2 = analogRead(pinFlacaraS2);
+  servoTur.write(valS1 < valS2? (90-20) : (90+20));
+
+  // Miscare Oscilatorie Servo 4 (10 secunde round-trip)
+  if (currentMillis - timpAnteriorServo4 >= intervalServo4) {
+    timpAnteriorServo4 = currentMillis;
+    pos4 += dir4;
+    if (pos4 >= 180 || pos4 <= 0) dir4 *= -1;
+    servoUnghi.write(pos4);
+  }
+
+  // Activare Pompa B (Foc)
+  if (!pompaBlocata) {
+    digitalWrite(pinIN3, HIGH); digitalWrite(pinIN4, LOW);
+    analogWrite(pinENB, 255); // Viteza maxima
+  }
+}
+
+void gestionareIrigare(unsigned long currentMillis) {
+  if (currentMillis - timpAnteriorIrigare >= intervalIrigare) {
+    timpAnteriorIrigare = currentMillis;
+    int m1 = analogRead(pinUmiditate1);
+    int m2 = analogRead(pinUmiditate2);
+    int medie = (m1 + m2) / 2;
+
+    if (medie < pragUmiditate) {
+      digitalWrite(pinIN1, HIGH); digitalWrite(pinIN2, LOW);
+      analogWrite(pinENA, 200); // Viteza irigare
+    } else {
+      digitalWrite(pinIN1, LOW); digitalWrite(pinIN2, LOW);
+    }
+  }
+}
