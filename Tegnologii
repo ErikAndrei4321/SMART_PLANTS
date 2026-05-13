@@ -1,0 +1,49 @@
+Tehnologii:
+
+Sistemul se folosește de:
+2 senzori de umiditate ai solului
+2 senzori de foc
+1 senzor de detectare al nivelului apei
+2 pompe de apa submersibile de 3-6 v
+3 mini servouri SG90
+1 Axon  Max sevo 
+2 panouri solare 
+2 baterii de tip LI-ion de 3,7V și 2200mAh puse intr un suport de baterie, astfel generand 7,4V si 2200mAh
+4 baterii de tip LI-ion de 3,7V si 3000mAh puse doua cate doua in suporti de baterie și apoi conectate între ele + cu + si - cu -, astfel generand 7,4v si 6000mAh
+Un convertor  descendente XL4016 cu voltmetru
+2 module de incaracre si protectie a bateriilor de tip BMS 2S
+1 modul de driver de comanda motor cu L298N OKY3195
+Arduino uno
+
+
+Cum funcționează:
+
+Placa arduino este alimentată de cu 7,4V și 2200mAh prin portul DC unde se conecteaza toate componentele fie direct fie prin componente intermediare astfel aducand
+la viata ambele sisteme: de irigare și de stingere al focului.
+
+Sistemul de irigare: preia semnalul de la senzorii de umiditate si cand detecteaza ca solul este uscat trimite semnal la una din pompele de apa care începe
+irigarea solului, iar pentru a ne asigura ca pompele raman submersibile folosim senzorul de nivel al apei care oprește operația odată ce nu mai detectează
+apa pentru a nu strica pompele. 
+
+Sistemul anti-foc: se folosește de senzorii de foc amplasati pe cate un mini servo care se invart la 180 grade, ambii fiind pozitionati unu cu spatele la celălalt
+pentru a asigura o detectare completa. Odată ce senzorul detectează foc activeza cealalta pompa de apa care trimitre apa pe furtunul atașat pe un Axon care se
+poate se invartii aprox 360 de grade pentru  a stinge  focul oriunde ar fi, iar pentru a ne asigura ca apa tinteste focul ne folosim de alt mini servo pentru
+a ajusta unghiul furtunului.
+
+Tot mecanismul este amplasat pe o cutie confectionata din lemn de dimensiuni de 50x50 cm și 25 cm înălțime în care se pune pamantul pt  agricol iar sub sistem se
+afla containerul de apa care este alimentat de către o sticlă de 2L în fiecare colț al cutiei.
+
+
+Relațiile dintre componente și acum comunica
+
+am îmbinat cablul de + de la senzori într-unul singur pentru a fi necesar doar un pin de 5v de pe arduino si asa am făcut și pentru cablu de - pentru a folosi un
+singur pin GND, iar celălalt cablu l-am conectat în pini analogici
+am folosi același principiu și pentru servouri dora ca aceste primesc puterea de la  pachetul de baterii care genereaz 7.4V 6000mAh care este conectat la un
+voltmetru pentru a limita volti la 6 deoarece orice mai mult ar arde mini servourile, iar cablurile de semnal sunt sunt bagate in pini digitali  ai arduino-ului
+pompele sunt conectate la modulul de driver de motoare care primește putere de la arduino folosind un pin GND și unul de 5V, iar pentru comunicarea cu
+motoarele folosim pini digitali
+bateriile sunt alimentate de de panouri solare cu ajutorul plăcii BMS 2s
+iar arduinoul este alimentat de 7,4V 2200mAh prin potrtul DC
+
+             
+
